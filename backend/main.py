@@ -281,13 +281,62 @@ def dataset_summary():
 @app.get("/api/data-quality")
 def data_quality():
     cache = get_analysis_cache()
-    return cache['quality']
+    q = cache['quality']
+    # Normalise key names to match frontend DataQualityResponse type
+    return {
+        "missing_count":    q.get('missing_resumes', q.get('missing_count', 0)),
+        "duplicate_rows":   q.get('duplicate_rows', 0),
+        "duplicate_texts":  q.get('duplicate_texts', 0),
+        "empty_resumes":    q.get('empty_resumes', 0),
+        "usable_records":   q.get('usable_records', 0),
+    }
 
 
 @app.get("/api/eda")
 def eda():
     cache = get_analysis_cache()
-    return cache['eda']
+    ds = cache['dataset']       # has class_counts, avg_words, etc.
+    ed = cache['eda']           # has word_count_by_class, top_words_by_class
+
+    # Build class_distribution from dataset.class_counts
+    class_distribution: dict = ds.get('class_counts', {})
+
+    # Build word_count_stats from dataset fields
+    word_count_stats = {
+        "avg":    ds.get('avg_words', 0),
+        "median": ds.get('avg_words', 0),   # median not stored separately; use avg as fallback
+        "min":    0,
+        "max":    ds.get('max_words', 0),
+    }
+
+    char_count_stats = {
+        "avg":    ds.get('avg_chars', 0),
+        "median": ds.get('avg_chars', 0),
+        "min":    0,
+        "max":    ds.get('max_chars', 0),
+    }
+
+    # Aggregate top words across all classes
+    from collections import Counter
+    word_counter: Counter = Counter()
+    top_words_by_class = ed.get('top_words_by_class', {})
+    for class_words in top_words_by_class.values():
+        for item in class_words:
+            word_counter[item['word']] += item['count']
+    top_words = [{"word": w, "count": c} for w, c in word_counter.most_common(20)]
+
+    # per_class_terms: keep the existing structure
+    per_class_terms = top_words_by_class
+
+    return {
+        "class_distribution": class_distribution,
+        "word_count_stats":   word_count_stats,
+        "char_count_stats":   char_count_stats,
+        "top_words":          top_words,
+        "bigrams":            [],   # not computed in current data_analysis.py
+        "trigrams":           [],
+        "per_class_terms":    per_class_terms,
+    }
 
 
 @app.get("/api/preprocessing")

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts';
-import { Database, AlertTriangle, CheckCircle, Info } from 'lucide-react';
+import { Database, AlertTriangle, Info } from 'lucide-react';
 import SectionHeader from '../components/SectionHeader';
 import MetricCard from '../components/MetricCard';
 import NotAvailable from '../components/NotAvailable';
